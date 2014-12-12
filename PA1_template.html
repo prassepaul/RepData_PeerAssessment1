@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>Loading and preprocessing the data</title>
+
+<script type="text/javascript">
+window.onload = function() {
+  var imgs = document.getElementsByTagName('img'), i, img;
+  for (i = 0; i < imgs.length; i++) {
+    img = imgs[i];
+    // center an image if it is the only element of its parent
+    if (img.parentElement.childElementCount === 1)
+      img.parentElement.style.textAlign = 'center';
+  }
+};
+</script>
+
+
+
+
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 1em;
+  line-height: 20px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 {
+   font-size:2.2em;
+}
+
+h2 {
+   font-size:1.8em;
+}
+
+h3 {
+   font-size:1.4em;
+}
+
+h4 {
+   font-size:1.0em;
+}
+
+h5 {
+   font-size:0.9em;
+}
+
+h6 {
+   font-size:0.8em;
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre, img {
+  max-width: 100%;
+}
+pre {
+  overflow-x: auto;
+}
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * {
+      background: transparent !important;
+      color: black !important;
+      filter:none !important;
+      -ms-filter: none !important;
+   }
+
+   body {
+      font-size:12pt;
+      max-width:100%;
+   }
+
+   a, a:visited {
+      text-decoration: underline;
+   }
+
+   hr {
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote {
+      padding-right: 1em;
+      page-break-inside: avoid;
+   }
+
+   tr, img {
+      page-break-inside: avoid;
+   }
+
+   img {
+      max-width: 100% !important;
+   }
+
+   @page :left {
+      margin: 15mm 20mm 15mm 10mm;
+   }
+
+   @page :right {
+      margin: 15mm 10mm 15mm 20mm;
+   }
+
+   p, h2, h3 {
+      orphans: 3; widows: 3;
+   }
+
+   h2, h3 {
+      page-break-after: avoid;
+   }
+}
+</style>
+
+
+
+</head>
+
+<body>
+<h1>Loading and preprocessing the data</h1>
+
+<p>Load needed packages:</p>
+
+<pre><code class="r">library(plyr);
+library(ggplot2);
+library(timeDate);
+</code></pre>
+
+<p>Load the dataset:</p>
+
+<pre><code class="r">data &lt;- read.csv(&quot;activity/activity.csv&quot;);
+</code></pre>
+
+<p>Convert the date:</p>
+
+<pre><code class="r">data$dates &lt;- as.Date.character(data$date);
+</code></pre>
+
+<p>Get the data without NAs in &quot;steps&quot;:</p>
+
+<pre><code class="r">idsNA &lt;- lapply(data$steps,is.na);
+idsNotNa &lt;- lapply(idsNA,identical,FALSE);
+dataWithoutNA &lt;- data[unlist(idsNotNa),];
+</code></pre>
+
+<h1>Q1: What is mean total number of steps taken per day?</h1>
+
+<p>Group data by date and calculate some statistics:</p>
+
+<pre><code class="r">groupedByDate &lt;- ddply(dataWithoutNA, c(&quot;date&quot;), summarise,
+                meanSteps = mean(steps),
+                sdSteps   = sd(steps), 
+                numSteps = sum(steps));
+groupedByDate$date &lt;- as.Date.character(groupedByDate$date);
+</code></pre>
+
+<h2>Plot histogram of the total number of steps taken each day</h2>
+
+<pre><code class="r">ggplot(groupedByDate, aes(date,numSteps)) +
+     geom_histogram(stat=&quot;identity&quot;) +
+     labs(x=&quot;Date&quot;, y=&quot;number of steps taken&quot;, title=&quot;Number of steps taken each day&quot;) +
+     theme_grey();
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6"> </p>
+
+<h2>A1: Mean and Median of the total number of steps taken per day</h2>
+
+<p>The mean and median of the total number of steps taken per day are as follows:</p>
+
+<pre><code class="r">mean(groupedByDate$numSteps);
+</code></pre>
+
+<pre><code>## [1] 10766.19
+</code></pre>
+
+<pre><code class="r">median(groupedByDate$numSteps);
+</code></pre>
+
+<pre><code>## [1] 10765
+</code></pre>
+
+<h2>Q2: What is the average daily activity pattern?</h2>
+
+<p>Group data by interval and calculate some statistics:</p>
+
+<pre><code class="r">groupedByInterval &lt;- ddply(dataWithoutNA, c(&quot;interval&quot;), summarise,
+                meanSteps = mean(steps),
+                sdSteps   = sd(steps), 
+                numSteps = sum(steps));
+</code></pre>
+
+<p>Plot time series:</p>
+
+<pre><code class="r">ggplot(groupedByInterval, aes(interval,meanSteps)) +
+     geom_line() +
+     labs(x=&quot;Interval&quot;, y=&quot;average number of steps taken&quot;, title=&quot;Average number of steps taken each interval&quot;)+
+     theme_grey( );
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9"> </p>
+
+<p>The interval with the maximum averaged number of steps is the following one:</p>
+
+<pre><code class="r">groupedByInterval[which.max(groupedByInterval$meanSteps),1];
+</code></pre>
+
+<pre><code>## [1] 835
+</code></pre>
+
+<h1>Imputing missing values</h1>
+
+<p>Number of missing values in the dataset:</p>
+
+<pre><code class="r">sum(unlist(lapply(data$steps,is.na)))
+</code></pre>
+
+<pre><code>## [1] 2304
+</code></pre>
+
+<h2>Imputate missing values by the rounded mean for the interval</h2>
+
+<p>Get indices of row with NAs and create new variable to store new cleaned dataset</p>
+
+<pre><code class="r">indexesNAs &lt;- which(idsNA == TRUE);
+dataWithImputation &lt;- data;
+</code></pre>
+
+<p>Iterate over all rows with NAs and recplace steps whith rounded mean of steps taken on average for that interval</p>
+
+<pre><code class="r">for(i in 1:length(indexesNAs)){
+    actIndex &lt;- indexesNAs[i];
+    dataWithImputation[actIndex,1] = 
+        round(groupedByInterval[groupedByInterval[,1] == 
+        dataWithImputation[actIndex,3],2]);
+}
+</code></pre>
+
+<h2>Plot histogram of the total number of steps taken each day for the dataset with imputed missing values</h2>
+
+<pre><code class="r">groupedByDateWithImputation &lt;- ddply(dataWithImputation, c(&quot;date&quot;), summarise,
+                meanSteps = mean(steps),
+                sdSteps   = sd(steps), 
+                numSteps = sum(steps));
+groupedByDateWithImputation$date &lt;- as.Date.character(groupedByDateWithImputation$date);
+ggplot(groupedByDate, aes(date,numSteps)) +
+     geom_histogram(stat=&quot;identity&quot;) +
+     labs(x=&quot;Date&quot;, y=&quot;number of steps taken&quot;, title=&quot;Number of steps taken each day&quot;) +
+     theme_grey();
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-14-1.png" alt="plot of chunk unnamed-chunk-14"> </p>
+
+<h2>Calculate and report mean and median of the total number of steps taken per day</h2>
+
+<pre><code class="r">mean(groupedByDateWithImputation$numSteps);
+</code></pre>
+
+<pre><code>## [1] 10765.64
+</code></pre>
+
+<pre><code class="r">median(groupedByDateWithImputation$numSteps);
+</code></pre>
+
+<pre><code>## [1] 10762
+</code></pre>
+
+<p>The values does not differ extremely from those of the first part. If we imputate the missing values on the estimates of the total daily number of steps, we would mix the number of steps for each interval which are extremely different from each other depending on the specific interval. This would lead to a &quot;bad&quot; imputation.</p>
+
+<h1>Q3: Are there differences in activity patterns between weekdays and weekends?</h1>
+
+<p>Get the day of the week for each date and create factor variable which stores if day of week belongs to the weekend or a weekday (using german names!).</p>
+
+<pre><code class="r">dayOfWeek &lt;- weekdays(dataWithImputation$dates);
+isWeekend &lt;- dayOfWeek %in% c(&quot;Samstag&quot;,&quot;Sonntag&quot;);
+weekendWeekday &lt;- factor (isWeekend, levels = c(TRUE,FALSE), labels=c(&quot;weekend&quot;,&quot;weekday&quot;));
+dataWithImputation$weekendWeekday &lt;- weekendWeekday;
+</code></pre>
+
+<p>Group data by interval and day of week (weekend of weekday) and plot data.</p>
+
+<pre><code class="r">groupedByIntervalWithImputation &lt;- ddply(dataWithImputation, c(&quot;interval&quot;,&quot;weekendWeekday&quot;), summarise,
+                meanSteps = mean(steps),
+                sdSteps   = sd(steps), 
+                numSteps = sum(steps));
+ggplot(groupedByIntervalWithImputation, aes(interval,meanSteps)) +
+     geom_line() +
+     labs(x=&quot;Interval&quot;, y=&quot;average number of steps taken&quot;, title=&quot;Average number of steps taken each interval&quot;) +
+      facet_grid(weekendWeekday ~ .) +
+      theme_grey();
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17"> 
+A3: As we can conclude from the above plot, their are some differences in the activity pattern between weekdays and weekends.</p>
+
+</body>
+
+</html>
